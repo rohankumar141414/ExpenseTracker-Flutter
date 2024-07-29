@@ -2,6 +2,7 @@ import 'package:expense_tracker/widgets/expenses-list/expense_list.dart';
 import 'package:expense_tracker/widgets/new_expense.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/expense.dart';
+import 'package:flutter/services.dart';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
@@ -28,16 +29,62 @@ class _ExpensesState extends State<Expenses> {
     )
   ];
 
-void _openAddExpenseOverlay() {
-  showModalBottomSheet(context: context, builder: (ctx) => const NewExpense());
-}
+  void _openAddExpenseOverlay() {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      builder: (ctx) => NewExpense(
+        onAddExpense: _addExpense,
+      ),
+    );
+  }
 
+  void _addExpense(Expense expense) {
+    setState(() {
+      registeredExpenses.add(expense);
+      Navigator.pop(context);
+    });
+  }
+
+  void _removeExpense(Expense expense) {
+    final expenseIndex = registeredExpenses.indexOf(expense);
+    setState(() {
+      registeredExpenses.remove(expense);
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 3),
+        content: const Text('Expense Deleted'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              registeredExpenses.insert(expenseIndex, expense);
+            });
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    Widget mainContent = const Center(
+      child: Text("Nothing to Show. Add Expenses!"),
+    );
+
+    if (registeredExpenses.isNotEmpty) {
+      mainContent = ExpenseList(
+        expenses: registeredExpenses,
+        removeExpense: _removeExpense,
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text("add more"),
+        title: const Text("Flutter Expense Tracker"),
         actions: [
           IconButton(
             onPressed: _openAddExpenseOverlay,
@@ -47,9 +94,10 @@ void _openAddExpenseOverlay() {
       ),
       body: Column(
         children: [
-          const Text("uper wala"),
+          const SizedBox(height: 20,),
+          const Text("Space for Chart Display"),
           Expanded(
-            child: ExpenseList(expenses: registeredExpenses),
+            child: mainContent,
           ),
         ],
       ),
